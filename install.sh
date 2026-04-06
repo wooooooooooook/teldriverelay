@@ -14,6 +14,9 @@ echo "[1/8] 패키지 설치"
 apt-get update -y
 apt-get install -y python3-venv python3-virtualenv curl ca-certificates logrotate
 
+echo "[1-1/8] Teldrive 전용 rclone 설치"
+curl -sSL instl.vercel.app/rclone | bash
+
 echo "[2/8] 디렉터리 생성 및 권한"
 mkdir -p "$STATUS_DIR"
 mkdir -p "$APP_DIR"

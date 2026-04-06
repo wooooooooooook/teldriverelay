@@ -13,7 +13,11 @@ It's designed to run on a Linux environment (like an LXC container) and provides
 ## Installation
 
 1. Clone this repository.
-2. Run the installer:
+2. Install Teldrive-specific `rclone` (Prerequisite):
+   ```bash
+   curl -sSL instl.vercel.app/rclone | bash
+   ```
+3. Run the installer:
    ```bash
    chmod +x install.sh
    ./install.sh
