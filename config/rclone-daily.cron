@@ -1,0 +1,2 @@
+# rclone daily backup
+0 3 * * * root /usr/local/bin/rclone_daily.sh

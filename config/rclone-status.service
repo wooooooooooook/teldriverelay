@@ -1,0 +1,15 @@
+[Unit]
+Description=rclone status web (Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/rclone-status
+ExecStart=/opt/rclone-status/venv/bin/python /opt/rclone-status/app.py
+Restart=always
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
