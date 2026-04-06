@@ -50,6 +50,8 @@ run_copy "photos" "/var/log/rclone_photos.log" \
     --create-empty-src-dirs \
     --exclude '@*/**' \
     --ignore-existing \
+    --teldrive-upload-concurrency 4 \
+    --teldrive-chunk-size 500M \
     --transfers 1 --checkers 2 --tpslimit 3 \
     --log-file=/var/log/rclone_photos.log \
     --log-level=INFO \
@@ -60,6 +62,8 @@ run_copy "HA_backups" "/var/log/rclone_HA_backups.log" \
     --create-empty-src-dirs \
     --exclude '@*/**' \
     --ignore-existing \
+    --teldrive-upload-concurrency 4 \
+    --teldrive-chunk-size 500M \
     --transfers 1 --checkers 2 --tpslimit 3 \
     --log-file=/var/log/rclone_HA_backups.log \
     --log-level=INFO \
@@ -70,6 +74,8 @@ run_copy "surveillance" "/var/log/surveillance.log" \
     --create-empty-src-dirs \
     --exclude '@*/**' \
     --ignore-existing \
+    --teldrive-upload-concurrency 4 \
+    --teldrive-chunk-size 500M \
     --transfers 1 --checkers 2 --tpslimit 3 \
     --log-file=/var/log/surveillance.log \
     --log-level=INFO \

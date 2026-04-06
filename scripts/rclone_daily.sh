@@ -131,6 +131,7 @@ if [ $# -gt 0 ]; then
     photos)
         "$RCLONE" copy "$SRC_PHOTOS" teldrive:/photos \
           --create-empty-src-dirs --exclude '@*/**' --ignore-existing \
+          --teldrive-upload-concurrency 4 --teldrive-chunk-size 500M \
           --contimeout 10s --timeout 1m --retries 3 --retries-sleep 10s \
           --transfers 1 --checkers 2 --tpslimit 3 \
           --log-file=/var/log/rclone_photos.log --log-level=INFO \
@@ -139,6 +140,7 @@ if [ $# -gt 0 ]; then
     HA_backups)
         "$RCLONE" copy "$SRC_HA" "teldrive:/HA backups" \
           --create-empty-src-dirs --exclude '@*/**' --ignore-existing \
+          --teldrive-upload-concurrency 4 --teldrive-chunk-size 500M \
           --contimeout 10s --timeout 1m --retries 3 --retries-sleep 10s \
           --transfers 1 --checkers 2 --tpslimit 3 \
           --log-file=/var/log/rclone_HA_backups.log --log-level=INFO \
@@ -147,6 +149,7 @@ if [ $# -gt 0 ]; then
     surveillance)
         "$RCLONE" copy "$SRC_SURV" "teldrive:/surveillance" \
           --create-empty-src-dirs --exclude '@*/**' --ignore-existing \
+          --teldrive-upload-concurrency 4 --teldrive-chunk-size 500M \
           --contimeout 10s --timeout 1m --retries 3 --retries-sleep 10s \
           --transfers 1 --checkers 2 --tpslimit 3 \
           --log-file=/var/log/surveillance.log --log-level=INFO \
