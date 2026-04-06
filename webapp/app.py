@@ -356,9 +356,9 @@ def control_task(task, action):
             
             # 3. 상태 업데이트 (중지됨 표시)
             log_map = {
-                "photos": "/var/log/rclone_photos.log",
-                "HA_backups": "/var/log/rclone_HA_backups.log",
-                "surveillance": "/var/log/surveillance.log"
+                "photos": os.path.join(STATUS_DIR, "rclone_photos.log"),
+                "HA_backups": os.path.join(STATUS_DIR, "rclone_HA_backups.log"),
+                "surveillance": os.path.join(STATUS_DIR, "surveillance.log")
             }
             tasks_to_update = [task] if task != "all" else ["photos", "HA_backups", "surveillance"]
             
@@ -381,6 +381,10 @@ def api_stats():
 
 @app.route("/status.json")
 def status_json(): return send_from_directory(STATUS_DIR, "status.json")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
+on")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

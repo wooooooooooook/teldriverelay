@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  teldrive-relay:
+    build: .
+    container_name: teldrive-relay
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TELDRIVE_ACCESS_TOKEN=your_access_token_here
+      - TELDRIVE_API_HOST=http://your_teldrive_host_here
+      - TELDRIVE_ENCRYPT_FILES=true
+      - TELDRIVE_ROOT_FOLDER_ID=your_root_folder_id_here
+      - CRON_SCHEDULE=0 3 * * *
+      - SOURCE_PHOTOS=/mnt/photos
+      - SOURCE_HA=/mnt/ha_backups
+      - SOURCE_SURV=/mnt/surveillance
+    volumes:
+      - ./status_data:/app/status
+      # Mount your local directories to the container paths
+      - /mnt/nas/woooook/Photos:/mnt/photos:ro
+      - "/mnt/backups/HA backups:/mnt/ha_backups:ro"
+      - /mnt/surveillance:/mnt/surveillance:ro

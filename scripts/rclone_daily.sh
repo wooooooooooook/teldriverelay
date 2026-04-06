@@ -143,7 +143,7 @@ if [ $# -gt 0 ]; then
           --teldrive-upload-concurrency 4 --teldrive-chunk-size 500M \
           --contimeout 10s --timeout 1m --retries 3 --retries-sleep 10s \
           --transfers 1 --checkers 2 --tpslimit 3 \
-          --log-file=/var/log/rclone_HA_backups.log --log-level=INFO \
+          --log-file="${STATUS_DIR}/rclone_HA_backups.log" --log-level=INFO \
           --rc --rc-no-auth --rc-addr localhost:5572
       ;;
     surveillance)
@@ -152,7 +152,7 @@ if [ $# -gt 0 ]; then
           --teldrive-upload-concurrency 4 --teldrive-chunk-size 500M \
           --contimeout 10s --timeout 1m --retries 3 --retries-sleep 10s \
           --transfers 1 --checkers 2 --tpslimit 3 \
-          --log-file=/var/log/surveillance.log --log-level=INFO \
+          --log-file="${STATUS_DIR}/surveillance.log" --log-level=INFO \
           --rc --rc-no-auth --rc-addr localhost:5572
       ;;
     *)
@@ -164,6 +164,12 @@ else
   # 인자 없으면 순차적으로 모두 실행 (기존 크론용)
   for t in "${TASK_LIST[@]}"; do
     $0 "$t"
+    sleep 2
+  done
+fi
+done
+fi
+   $0 "$t"
     sleep 2
   done
 fi
