@@ -1,26 +1,40 @@
 {
-  "_comment": "Single source of truth for backup jobs. The webapp reads this at startup. To add a new backup job: append a new entry here, then add the matching case in scripts/rclone_daily.sh. Required fields: name (display), key (rclone_daily.sh arg), mount (local path to findmnt), log (log file path), dest (teldrive remote path used for pkill).",
   "tasks": [
     {
+      "id": "photos",
       "name": "Photos",
-      "key": "photos",
-      "mount": "/mnt/nas/woooook/Photos",
-      "log": "/var/log/rclone_photos.log",
-      "dest": "teldrive:/photos"
+      "source": "/mnt/nas/woooook/Photos",
+      "dest": "teldrive:/photos",
+      "schedule": "0 16 * * *",
+      "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3",
+      "enabled": true
     },
     {
+      "id": "HA_backups",
       "name": "HA Backups",
-      "key": "HA_backups",
-      "mount": "/mnt/backups/HA backups",
-      "log": "/var/log/rclone_HA_backups.log",
-      "dest": "teldrive:/HA backups"
+      "source": "/mnt/backups/HA backups",
+      "dest": "teldrive:/HA backups",
+      "schedule": "0 3 * * *",
+      "enabled": true,
+      "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3"
     },
     {
+      "id": "surveillance",
       "name": "Surveillance",
-      "key": "surveillance",
-      "mount": "/mnt/surveillance",
-      "log": "/var/log/surveillance.log",
-      "dest": "teldrive:/surveillance"
+      "source": "/mnt/surveillance",
+      "dest": "teldrive:/surveillance",
+      "schedule": "0 3 * * *",
+      "enabled": true,
+      "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3"
+    },
+    {
+      "id": "pve_backups",
+      "name": "pve backups",
+      "source": "/mnt/pve-backup",
+      "dest": "teldrive:/pve_backups",
+      "schedule": "0 18 * * *",
+      "rclone_flags": "",
+      "enabled": true
     }
   ]
 }

@@ -6,29 +6,7 @@ app = Flask(__name__)
 STATUS_DIR = "/var/www/rclone-status"
 STATUS_FILE = os.path.join(STATUS_DIR, "status.json")
 RC_URL = "http://localhost:5572/core/stats"
-
-# 설정 기반 작업 목록 (config/tasks.json). 파일이 없거나 깨졌으면 기본 3개로 fallback.
-CONFIG_PATH = os.environ.get("TASKS_CONFIG", "/app/config/tasks.json")
-_DEFAULT_TASKS = [
-    {"name": "Photos",       "key": "photos",       "mount": "/mnt/nas/woooook/Photos", "log": "/var/log/rclone_photos.log",      "dest": "teldrive:/photos"},
-    {"name": "HA Backups",   "key": "HA_backups",   "mount": "/mnt/backups/HA backups",  "log": "/var/log/rclone_HA_backups.log",  "dest": "teldrive:/HA backups"},
-    {"name": "Surveillance", "key": "surveillance", "mount": "/mnt/surveillance",        "log": "/var/log/surveillance.log",       "dest": "teldrive:/surveillance"},
-]
-
-def _load_tasks():
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-        tasks = cfg.get("tasks")
-        if isinstance(tasks, list) and tasks and all("key" in t and "name" in t for t in tasks):
-            return tasks
-    except Exception:
-        pass
-    return list(_DEFAULT_TASKS)
-
-TASKS = _load_tasks()
-TASK_BY_KEY = {t["key"]: t for t in TASKS}
-TASK_KEYS = list(TASK_BY_KEY.keys())
+CONFIG_FILE = os.path.join(STATUS_DIR, "config.json")
 
 TEMPLATE = """
 <!doctype html>
@@ -50,10 +28,10 @@ TEMPLATE = """
     }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; background: #f0f2f5; color: var(--dark); line-height: 1.6; }
     .container { max-width: 1100px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-
+    
     header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f2f5; margin-bottom: 30px; padding-bottom: 20px; }
     h1 { margin: 0; font-size: 28px; font-weight: 800; background: linear-gradient(45deg, var(--primary), var(--info)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
+    
     .btn { cursor: pointer; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: #3046bc; transform: translateY(-1px); }
@@ -67,10 +45,10 @@ TEMPLATE = """
     .stat-item { display: flex; flex-direction: column; }
     .stat-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 700; }
     .stat-value { font-size: 20px; font-weight: 800; color: var(--dark); }
-
+    
     .progress-wrapper { background: #edf2f7; border-radius: 20px; height: 12px; margin: 15px 0; overflow: hidden; position: relative; }
     .progress-inner { height: 100%; background: linear-gradient(90deg, var(--primary), var(--info)); transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 20px; }
-
+    
     .active-transfers { margin-top: 25px; background: #fff; border-radius: 12px; }
     .transfer-item { font-size: 13px; padding: 12px 16px; background: #f8f9fa; margin-bottom: 10px; border-radius: 10px; border-left: 4px solid var(--info); }
     .transfer-name { font-weight: 700; display: block; margin-bottom: 6px; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -80,7 +58,7 @@ TEMPLATE = """
     th { background: #fcfdfe; padding: 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); font-weight: 700; text-align: left; border-bottom: 1px solid #f0f2f5; }
     td { padding: 16px; border-bottom: 1px solid #f0f2f5; font-size: 14px; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-
+    
     .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
     .badge-ok { background: #e6fcf5; color: #0ca678; }
     .badge-err { background: #fff5f5; color: #f03e3e; }
@@ -90,11 +68,11 @@ TEMPLATE = """
     @keyframes sweep { 100% { left: 100%; } }
 
     .actions { display: flex; gap: 8px; }
-
+    
     pre { background: #1a1c23; color: #e1e1e1; padding: 20px; border-radius: 12px; overflow: auto; font-size: 12px; line-height: 1.6; border: 1px solid #2d2f39; margin-top: 10px; }
     h2, h3 { color: var(--dark); margin-top: 40px; margin-bottom: 15px; font-weight: 800; border-left: 4px solid var(--primary); padding-left: 15px; }
     hr { border: 0; height: 1px; background: #eee; margin: 40px 0; }
-
+    
     .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; border-radius: 10px; background: var(--dark); color: white; display: none; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: fadeInUp 0.4s; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   </style>
@@ -103,9 +81,10 @@ TEMPLATE = """
   <div class="container">
     <header>
       <h1>rclone 관리 모니터</h1>
+      <button class="btn btn-outline" onclick="openModal()">작업 추가</button>
       <button class="btn btn-primary" onclick="controlTask('all', 'start')">전체 작업 실행</button>
     </header>
-
+    
     {% if rc_stats and (rc_stats.speed > 0 or rc_stats.transferring) %}
       <div class="stats-card">
         <div class="stat-item">
@@ -129,7 +108,7 @@ TEMPLATE = """
       <div class="progress-wrapper">
         <div class="progress-inner" style="width: {{ rc_stats.percentage }}%"></div>
       </div>
-
+      
       {% if rc_stats.transferring %}
         <div class="active-transfers">
           {% for t in rc_stats.transferring %}
@@ -147,12 +126,12 @@ TEMPLATE = """
       <div class="stats-card">
         <div class="stat-item">
           <span class="stat-label">시스템 상태</span>
-          {% set is_any_running = false %}
+          {% set ns = namespace(is_any_running=false) %}
           {% if data and data.details %}
-            {% for d in data.details %}{% if d.status == 'running' %}{% set is_any_running = true %}{% endif %}{% endfor %}
+            {% for d in data.details %}{% if d.status == 'running' %}{% set ns.is_any_running = true %}{% endif %}{% endfor %}
           {% endif %}
 
-          {% if is_any_running %}
+          {% if ns.is_any_running %}
             <span class="stat-value" style="color:var(--info)">백업 스크립트 실행 중...</span>
           {% else %}
             <span class="stat-value" style="color:var(--gray)">대기 중 (Idle)</span>
@@ -164,34 +143,38 @@ TEMPLATE = """
     <section>
       <h2>백업 작업 리스트</h2>
       <table>
-        <thead><tr><th>작업명</th><th>상태</th><th>실행 제어</th><th>로그</th></tr></thead>
+        <thead><tr><th>작업명</th><th>마운트 경로</th><th>스케줄</th><th>상태</th><th>실행</th><th>관리</th></tr></thead>
         <tbody>
-          {% if data and data.details %}
-            {% for d in data.details %}
+          {% if config_tasks %}
+            {% for t in config_tasks %}
+              {% set detail = None %}
+              {% if data and data.details %}
+                {% for d in data.details %}
+                  {% if d.task == t.id %}{% set detail = d %}{% endif %}
+                {% endfor %}
+              {% endif %}
               <tr>
-                <td style="font-weight:700">{{ d.task }}</td>
+                <td style="font-weight:700">{{ t.name }}</td>
+                <td><code style="font-size:11px">{{ t.source }}</code><br><span style="color:#ccc">&#8594;</span> <code style="font-size:11px">{{ t.dest }}</code></td>
+                <td><code style="font-size:11px">{{ t.schedule }}</code></td>
                 <td>
-                  {% if d.status == 'success' %}
-                    <span class="badge badge-ok">SUCCESS</span>
-                  {% elif d.status == 'running' %}
-                    <span class="badge badge-running">RUNNING</span>
-                  {% else %}
-                    <span class="badge badge-err">ERROR</span>
-                  {% endif %}
+                  {% if detail and detail.status == 'success' %}<span class="badge badge-ok">SUCCESS</span>
+                  {% elif detail and detail.status == 'running' %}<span class="badge badge-running">RUNNING</span>
+                  {% elif detail and detail.status == 'error' %}<span class="badge badge-err">ERROR</span>
+                  {% else %}<span class="badge badge-info">IDLE</span>{% endif %}
                 </td>
-                <td class="actions">
-                  <button class="btn btn-outline" onclick="controlTask('{{ d.task }}', 'start')" {% if d.status == 'running' %}disabled{% endif %}>
-                    시작
-                  </button>
-                  <button class="btn btn-danger" onclick="controlTask('{{ d.task }}', 'stop')" {% if d.status != 'running' %}disabled{% endif %}>
-                    중지
-                  </button>
+                <td>
+                  <button class="btn btn-outline" onclick="controlTask('{{ t.id }}', 'start')" {% if detail and detail.status == 'running' %}disabled{% endif %}>시작</button>
+                  <button class="btn btn-danger" onclick="controlTask('{{ t.id }}', 'stop')" {% if not detail or detail.status != 'running' %}disabled{% endif %}>중지</button>
                 </td>
-                <td><code style="font-size:11px; color:var(--gray)">{{ d.log }}</code></td>
+                <td>
+                  <button class="btn btn-outline" style="padding:3px 6px;font-size:11px" onclick="editTask({{ t|tojson|forceescape }})">수정</button>
+                  <button class="btn btn-danger" style="padding:3px 6px;font-size:11px" onclick="deleteTask('{{ t.id }}')">삭제</button>
+                </td>
               </tr>
             {% endfor %}
           {% else %}
-            <tr><td colspan="4" style="text-align:center; color:var(--gray)">기록된 작업이 없습니다.</td></tr>
+            <tr><td colspan="6" style="text-align:center; color:var(--gray)">등록된 작업이 없습니다. "작업 추가"로 등록하세요.</td></tr>
           {% endif %}
         </tbody>
       </table>
@@ -224,9 +207,9 @@ TEMPLATE = """
 
     <section>
       <h2>최근 작업 로그</h2>
-      {% for entry in tails %}
-        <h3>{{ entry.name }}</h3>
-        <pre>{{ entry.content }}</pre>
+      {% for name, content in tails.items() %}
+        <h3>{{ name }}</h3>
+        <pre>{{ content }}</pre>
       {% endfor %}
     </section>
   </div>
@@ -244,7 +227,7 @@ TEMPLATE = """
     async function controlTask(task, action) {
       showToast(`${task} 작업을 ${action == 'start' ? '시작' : '중지'}합니다...`);
       try {
-        const res = await fetch(`/api/control/${encodeURIComponent(task)}/${action}`, { method: 'POST' });
+        const res = await fetch(`/api/control/${task}/${action}`, { method: 'POST' });
         const data = await res.json();
         if (data.status === 'ok') {
           showToast(`요청 성공: ${data.message}`);
@@ -257,33 +240,86 @@ TEMPLATE = """
       }
     }
   </script>
+
+  <div id="taskModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:999">
+    <div style="background:white;padding:30px;border-radius:12px;width:500px;max-width:90%;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 id="modalTitle" style="margin:0;border:none;padding:0">백업 작업 추가/수정</h3>
+        <span style="cursor:pointer;font-size:24px;font-weight:bold" onclick="closeModal()">&#215;</span>
+      </div>
+      <form id="taskForm" onsubmit="saveTask(event)">
+        <input type="hidden" id="task_id">
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:4px;font-size:13px">작업 ID *</label>
+          <input type="text" id="form_id" required placeholder="my_backup" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:4px;font-size:13px">작업명 *</label>
+          <input type="text" id="form_name" required placeholder="내 사진 백업" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:4px;font-size:13px">소스 경로(로컬) *</label>
+          <input type="text" id="form_source" required placeholder="/mnt/nas/Photos" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:4px;font-size:13px">대상(teldrive) *</label>
+          <input type="text" id="form_dest" required placeholder="teldrive:/photos" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:4px;font-size:13px">Cron 스케줄 *</label>
+          <input type="text" id="form_schedule" required placeholder="0 3 * * *" value="0 3 * * *" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:4px;font-size:13px">rclone 옵션</label>
+          <input type="text" id="form_flags" placeholder="--transfers 1 --checkers 2 --tpslimit 3" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" style="position:fixed;bottom:20px;right:20px;padding:14px 22px;border-radius:10px;background:#011627;color:white;display:none;z-index:1001;box-shadow:0 10px 30px rgba(0,0,0,0.2);animation:fadeInUp .4s"></div>
+
+  <script>
+    function showToast(msg){var t=document.getElementById('toast');t.innerText=msg;t.style.display='block';setTimeout(function(){t.style.display='none'},3000)}
+    function controlTask(task,action){showToast(task+' '+action);fetch('/api/control/'+task+'/'+action,{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.status==='ok'){showToast(d.message);setTimeout(function(){location.reload()},2000)}else{showToast('Error: '+d.message)}}).catch(function(){showToast('Network error')})}
+    function openModal(){document.getElementById('taskForm').reset();document.getElementById('task_id').value='';document.getElementById('form_id').disabled=false;document.getElementById('modalTitle').innerText='백업 작업 추가';document.getElementById('taskModal').style.display='flex'}
+    function closeModal(){document.getElementById('taskModal').style.display='none'}
+    function editTask(t){document.getElementById('task_id').value=t.id;document.getElementById('form_id').value=t.id;document.getElementById('form_id').disabled=true;document.getElementById('form_name').value=t.name;document.getElementById('form_source').value=t.source;document.getElementById('form_dest').value=t.dest;document.getElementById('form_schedule').value=t.schedule;document.getElementById('form_flags').value=t.rclone_flags||'';document.getElementById('modalTitle').innerText='백업 작업 수정';document.getElementById('taskModal').style.display='flex'}
+    function saveTask(e){e.preventDefault();var p={id:document.getElementById('form_id').value,name:document.getElementById('form_name').value,source:document.getElementById('form_source').value,dest:document.getElementById('form_dest').value,schedule:document.getElementById('form_schedule').value,rclone_flags:document.getElementById('form_flags').value,enabled:true};fetch('/api/config/task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json()}).then(function(r){if(r.status==='ok'){showToast('Saved');setTimeout(function(){location.reload()},1500)}else{showToast('Error: '+r.message)}}).catch(function(){showToast('Error')})}
+    function deleteTask(id){if(!confirm('Delete this task?'))return;fetch('/api/config/task/'+id,{method:'DELETE'}).then(function(r){return r.json()}).then(function(r){if(r.status==='ok'){showToast('Deleted');setTimeout(function(){location.reload()},1500)}else{showToast('Error: '+r.message)}}).catch(function(){showToast('Error')})}
+  </script>
+
 </body>
 </html>
 """
 
 def _get_live_mounts():
-    # 설정에 정의된 마운트 경로를 실시간으로 확인
+    # config.json에 등록된 모든 작업의 source 경로를 실시간으로 확인 (신규 작업 자동 반영)
+    cfg = _load_config()
+    paths = [t.get("source", "") for t in cfg.get("tasks", []) if t.get("source")]
     mounts = []
-    for t in TASKS:
-        p = t.get("mount", "")
+    for p in paths:
         mounted = False
         source = ""
         fstype = ""
-        if p:
-            try:
-                res = subprocess.run(['findmnt', '-no', 'SOURCE,FSTYPE', '--target', p], capture_output=True, text=True)
-                if res.returncode == 0 and res.stdout.strip():
-                    mounted = True
-                    parts = res.stdout.strip().split()
-                    if len(parts) >= 2:
-                        source, fstype = parts[0], parts[1]
-            except:
-                pass
+        try:
+            res = subprocess.run(['findmnt', '-no', 'SOURCE,FSTYPE', '--target', p], capture_output=True, text=True)
+            if res.returncode == 0 and res.stdout.strip():
+                mounted = True
+                parts = res.stdout.strip().split()
+                if len(parts) >= 2:
+                    source, fstype = parts[0], parts[1]
+        except:
+            pass
         mounts.append({"path": p, "mounted": mounted, "source": source, "fstype": fstype})
     return mounts
 
 def _read_last_lines(path, lines=50):
-    if not path or not os.path.exists(path): return "(로그 파일 없음)"
+    if not os.path.exists(path): return "(로그 파일 없음)"
     try:
         result = subprocess.run(['tail', '-n', str(lines), path], capture_output=True, text=True, errors='ignore')
         return result.stdout
@@ -320,6 +356,8 @@ def index():
     except: pass
 
     live_mounts = _get_live_mounts()
+    config = _load_config()
+    config_tasks = config.get("tasks", [])
     data = None
     stale = False
     hours = None
@@ -336,23 +374,21 @@ def index():
                 stale = diff.total_seconds() > 26*3600
         except: pass
 
-    # 설정 기반 로그 tail (신규 추가 작업도 자동으로 표시됨)
-    tails = [
-        {"name": t["name"], "content": _read_last_lines(t.get("log", ""))}
-        for t in TASKS
-    ]
+    # config.json의 모든 작업에 대해 동적으로 로그 tail (신규 추가 작업도 자동 표시)
+    # rclone_daily.sh의 logfile 규칙: /var/log/rclone_${task_id}.log
+    tails = {
+        t.get("name") or t.get("id"): _read_last_lines(f"/var/log/rclone_{t.get('id')}.log")
+        for t in config_tasks
+    }
+    tails = {k: v for k, v in tails.items() if k}  # 빈 키 제거
 
-    return render_template_string(TEMPLATE, rc_stats=rc_stats, live_mounts=live_mounts, data=data, tails=tails, stale=stale, hours=hours)
+    return render_template_string(TEMPLATE, rc_stats=rc_stats, live_mounts=live_mounts, data=data, tails=tails, config_tasks=config_tasks, stale=stale, hours=hours)
 
 @app.route("/api/control/<task>/<action>", methods=["POST"])
 def control_task(task, action):
     script_path = "/usr/local/bin/rclone_daily.sh"
-
+    
     if action == "start":
-        # 'all'이거나 설정에 등록된 task key인 경우만 허용
-        if task != "all" and task not in TASK_BY_KEY:
-            return jsonify({"status": "error", "message": f"알 수 없는 작업: {task}"})
-
         try:
             cmd = ["sudo", script_path]
             if task != "all": cmd.append(task)
@@ -361,30 +397,39 @@ def control_task(task, action):
             return jsonify({"status": "ok", "message": f"{task} 작업 시작됨"})
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)})
-
+            
     elif action == "stop":
         try:
             # 1. rclone_daily.sh 스크립트 중지
             if task == "all":
                 subprocess.run(["sudo", "pkill", "-f", script_path])
-                targets = TASK_KEYS
             else:
-                if task not in TASK_BY_KEY:
-                    return jsonify({"status": "error", "message": f"알 수 없는 작업: {task}"})
-                targets = [task]
+                pass
 
-            # 2. 관련 rclone 프로세스 중지 (설정된 dest 기준으로)
+            # 2. 관련 rclone 프로세스 중지
             if task == "all":
                 subprocess.run(["sudo", "pkill", "-9", "rclone"])
             else:
-                dest = TASK_BY_KEY[task].get("dest", task)
-                subprocess.run(["sudo", "pkill", "-9", "-f", f"rclone.*{dest}"])
-
+                search_map = {
+                    "photos": "teldrive:/photos",
+                    "HA_backups": "teldrive:/HA backups",
+                    "surveillance": "teldrive:/surveillance"
+                }
+                pattern = search_map.get(task, task)
+                subprocess.run(["sudo", "pkill", "-9", "-f", f"rclone.*{pattern}"])
+            
             # 3. 상태 업데이트 (중지됨 표시)
-            for t in targets:
-                logfile = TASK_BY_KEY[t].get("log", "/var/log/rclone.log")
+            log_map = {
+                "photos": "/var/log/rclone_photos.log",
+                "HA_backups": "/var/log/rclone_HA_backups.log",
+                "surveillance": "/var/log/surveillance.log"
+            }
+            tasks_to_update = [task] if task != "all" else ["photos", "HA_backups", "surveillance"]
+            
+            for t in tasks_to_update:
+                logfile = log_map.get(t, "/var/log/rclone.log")
                 subprocess.run(["sudo", script_path, "_update_status", t, "error", logfile])
-
+            
             return jsonify({"status": "ok", "message": f"{task} 작업 중지됨"})
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)})
@@ -400,6 +445,69 @@ def api_stats():
 
 @app.route("/status.json")
 def status_json(): return send_from_directory(STATUS_DIR, "status.json")
+
+
+def _load_config():
+    if not os.path.exists(CONFIG_FILE):
+        return {"tasks": []}
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {"tasks": []}
+
+def _save_config(config):
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+        return True
+    except:
+        return False
+
+def _update_cron():
+    cron_path = "/var/www/rclone-status/cron-config.txt"
+    try:
+        with open(cron_path, "w") as f:
+            f.write("# rclone daily backups (managed by Web UI)" + "\n")
+            for t in _load_config().get("tasks", []):
+                if t.get("enabled", True):
+                    f.write(f"{t['schedule']} root /usr/local/bin/rclone_daily.sh {t['id']}" + "\n")
+        return True
+    except:
+        return False
+
+@app.route("/api/config/task", methods=["POST"])
+def api_save_task():
+    payload = request.json
+    if not payload or 'id' not in payload or 'name' not in payload:
+        return jsonify({"status": "error", "message": "Required fields missing"})
+    config = _load_config()
+    tasks = config.get("tasks", [])
+    exists = False
+    for idx, t in enumerate(tasks):
+        if t['id'] == payload['id']:
+            tasks[idx] = payload; exists = True; break
+    if not exists:
+        tasks.append(payload)
+    config['tasks'] = tasks
+    if _save_config(config):
+        _update_cron()
+        return jsonify({"status": "ok", "message": "Saved"})
+    return jsonify({"status": "error", "message": "Save failed"})
+
+@app.route("/api/config/task/<task_id>", methods=["DELETE"])
+def api_delete_task(task_id):
+    config = _load_config()
+    tasks = config.get("tasks", [])
+    new_tasks = [t for t in tasks if t['id'] != task_id]
+    if len(tasks) == len(new_tasks):
+        return jsonify({"status": "error", "message": "Task not found"})
+    config['tasks'] = new_tasks
+    if _save_config(config):
+        _update_cron()
+        return jsonify({"status": "ok", "message": "Deleted"})
+    return jsonify({"status": "error", "message": "Delete failed"})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
