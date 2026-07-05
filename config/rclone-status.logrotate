@@ -1,6 +1,5 @@
-/var/log/rclone_photos.log
-/var/log/rclone_HA_backups.log
-/var/log/surveillance.log {
+/var/log/rclone_*.log
+/var/log/surveillance*.log {
     rotate 7
     daily
     missingok

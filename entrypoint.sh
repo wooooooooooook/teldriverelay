@@ -33,9 +33,7 @@ chmod 0644 "$CRON_FILE"
 crontab "$CRON_FILE"
 
 # 3. Create dummy log files if they don't exist so webapp doesn't complain
-touch /app/status/rclone_photos.log
-touch /app/status/rclone_HA_backups.log
-touch /app/status/surveillance.log
+# (실제 작업 목록은 /app/config/tasks.json에서 읽으므로 여기선 cron 로그만 보장)
 touch /app/status/cron.log
 
 # 4. Start Supervisord to manage Cron and Flask
