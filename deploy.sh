@@ -19,11 +19,13 @@ fi
 echo "[2/4] Deploy rclone_daily.sh..."
 ssh "$HOST" "pct exec $CT -- cp /usr/local/bin/rclone_daily.sh /usr/local/bin/rclone_daily.sh.bak.\$(date +%s)"
 scp "$REPO_DIR/scripts/rclone_daily.sh" "$HOST:/tmp/rclone_daily.sh"
-ssh "$HOST" "pct exec $CT -- cp /tmp/rclone_daily.sh /usr/local/bin/rclone_daily.sh && chmod +x /usr/local/bin/rclone_daily.sh"
+ssh "$HOST" "pct push $CT /tmp/rclone_daily.sh /usr/local/bin/rclone_daily.sh"
+ssh "$HOST" "pct exec $CT -- chmod +x /usr/local/bin/rclone_daily.sh"
 
-# 3. config.json 갱신
 echo "[3/4] Deploy config.json..."
 scp "$REPO_DIR/config/config.json" "$HOST:/tmp/config.json"
+ssh "$HOST" "pct push $CT /tmp/config.json /var/www/rclone-status/config.json"
+ssh "$HOST" "pct exec $CT -- chown www-data:www-data /var/www/rclone-status/config.json"
 ssh "$HOST" "pct exec $CT -- cp /tmp/config.json /var/www/rclone-status/config.json && chown www-data:www-data /var/www/rclone-status/config.json"
 
 # 4. systemd reload
