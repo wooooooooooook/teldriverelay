@@ -1,6 +1,7 @@
 #!/bin/bash
 set -Eeuo pipefail
 umask 022
+export TZ=Asia/Seoul
 
 RCLONE="/usr/bin/rclone"
 STATUS_DIR="/var/www/rclone-status"
@@ -63,9 +64,13 @@ run_copy () {
     fi
   fi
   echo $$ > "$task_lock"; trap 'rm -f "$task_lock"' RETURN
-  pkill -9 -f "rc-addr localhost:5572" 2>/dev/null || true; sleep 1
-  echo "[$(ts)] START $name" >> "$logfile" 2>&1 || true
+  pkill -9 -f "rc-addr localhost:5572" 2>/dev/null || true
+  for i in $(seq 1 30); do
+    if ! ss -tlnp 2>/dev/null | grep -q 127.0.0.1:5572; then break; fi
+    sleep 2
+  done
   update_task_status "$name" "running" "$logfile"
+  echo "[$(ts)] START $name" >> "$logfile" 2>&1 || true
   if "$@" >> "$logfile" 2>&1; then
     update_task_status "$name" "success" "$logfile"
     echo "[$(ts)] DONE  $name (OK)" >> "$logfile" 2>&1 || true
@@ -75,6 +80,50 @@ run_copy () {
   fi
   tail -n 100 "$logfile" > "$STATUS_DIR/${name}.tail" 2>/dev/null || true
 }
+
+
+# _tick mode: config.json의 task schedule이 현재 시각과 매치하면 그 task 1개만 백그라운드 실행
+if [ "${1:-}" = "_tick" ]; then
+  if [ ! -f "$CONFIG_FILE" ]; then exit 0; fi
+  NOW_M=$(date +%M)
+  NOW_H=$(date +%H)
+  NOW_DOM=$(date +%d)
+  NOW_MO=$(date +%m)
+  NOW_DOW=$(date +%u)
+  field_in_range() {
+    local n="$1" lo="${2%-}" hi="${2#*-}"
+    (( 10#$n >= 10#$lo && 10#$n <= 10#$hi ))
+  }
+  match_field() {
+    local expr="$1" now="$2"
+    case "$expr" in
+      "*"|"*/1") return 0 ;;
+      */*) local step="${expr#*/}"; [[ $(( 10#$now % 10#$step )) -eq 0 ]] ;;
+      *,*) local IFS=','
+        for v in $expr; do
+          if [[ "$v" == "$now" ]] || { [[ "$v" == *-* ]] && field_in_range "$now" "$v"; }; then return 0; fi
+        done
+        return 1 ;;
+      *-*) field_in_range "$now" "$expr" ;;
+      *) expr_p=$(printf '%02d' "$((10#$expr))" 2>/dev/null || echo "$expr")
+        now_p=$(printf '%02d' "$((10#$now))" 2>/dev/null || echo "$now")
+        [[ "$expr_p" == "$now_p" ]] ;;
+    esac
+  }
+  while IFS=$'	' read -r tid schedule enabled; do
+    [[ "$enabled" == "true" ]] || continue
+    read -r sm sh sdom smo sdow <<< "$schedule"
+    [[ "$sdow" == "0" ]] && sdow="7"
+    match_field "$sm"   "$NOW_M"   || continue
+    match_field "$sh"   "$NOW_H"   || continue
+    match_field "$sdom" "$NOW_DOM" || continue
+    match_field "$smo"  "$NOW_MO"  || continue
+    match_field "$sdow" "$NOW_DOW" || continue
+    echo "[$(date -Is)] tick -> $tid ($schedule)"
+    nohup "$0" "$tid" >/dev/null 2>&1 &
+  done < <(jq -r '.tasks[] | [.id, .schedule // "0 3 * * *", (.enabled // true | tostring)] | @tsv' "$CONFIG_FILE")
+  exit 0
+fi
 
 # config.json에서 마운트 경로 로드
 if [ -f "$CONFIG_FILE" ]; then

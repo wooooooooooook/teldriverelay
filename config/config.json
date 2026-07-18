@@ -32,7 +32,7 @@
       "name": "pve backups",
       "source": "/mnt/pve-backup",
       "dest": "teldrive:/pve_backups",
-      "schedule": "0 18 * * *",
+      "schedule": "0 11 * * *",
       "rclone_flags": "",
       "enabled": true
     }

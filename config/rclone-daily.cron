@@ -1,2 +1,2 @@
-# rclone daily backup
-0 3 * * * root /usr/local/bin/rclone_daily.sh
+# rclone scheduler tick (매분 호출 → config.json의 task별 schedule 매칭 시 실행)
+* * * * * root /usr/local/bin/rclone_daily.sh _tick >/dev/null 2>&1

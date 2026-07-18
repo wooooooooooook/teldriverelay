@@ -298,7 +298,6 @@ TEMPLATE = """
 """
 
 def _get_live_mounts():
-    # config.json에 등록된 모든 작업의 source 경로를 실시간으로 확인 (신규 작업 자동 반영)
     cfg = _load_config()
     paths = [t.get("source", "") for t in cfg.get("tasks", []) if t.get("source")]
     mounts = []
@@ -374,13 +373,11 @@ def index():
                 stale = diff.total_seconds() > 26*3600
         except: pass
 
-    # config.json의 모든 작업에 대해 동적으로 로그 tail (신규 추가 작업도 자동 표시)
-    # rclone_daily.sh의 logfile 규칙: /var/log/rclone_${task_id}.log
     tails = {
         t.get("name") or t.get("id"): _read_last_lines(f"/var/log/rclone_{t.get('id')}.log")
         for t in config_tasks
     }
-    tails = {k: v for k, v in tails.items() if k}  # 빈 키 제거
+    tails = {k: v for k, v in tails.items() if k}
 
     return render_template_string(TEMPLATE, rc_stats=rc_stats, live_mounts=live_mounts, data=data, tails=tails, config_tasks=config_tasks, stale=stale, hours=hours)
 
@@ -392,7 +389,6 @@ def control_task(task, action):
         try:
             cmd = ["sudo", script_path]
             if task != "all": cmd.append(task)
-            # 백그라운드로 실행
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return jsonify({"status": "ok", "message": f"{task} 작업 시작됨"})
         except Exception as e:
@@ -403,31 +399,26 @@ def control_task(task, action):
             # 1. rclone_daily.sh 스크립트 중지
             if task == "all":
                 subprocess.run(["sudo", "pkill", "-f", script_path])
-            else:
-                pass
+            # else: individual stop — rely on pkill below
 
-            # 2. 관련 rclone 프로세스 중지
+            # 2. rclone 프로세스 중지 — 동적 (config.json 기반)
+            config = _load_config()
+            all_tasks = config.get("tasks", [])
+            tasks_id = [t["id"] for t in all_tasks]
+            task_ids_lower = {t["id"].lower(): t["id"] for t in all_tasks}
+
             if task == "all":
                 subprocess.run(["sudo", "pkill", "-9", "rclone"])
             else:
-                search_map = {
-                    "photos": "teldrive:/photos",
-                    "HA_backups": "teldrive:/HA backups",
-                    "surveillance": "teldrive:/surveillance"
-                }
-                pattern = search_map.get(task, task)
+                matched_id = task_ids_lower.get(task.lower(), task)
+                target_task = next((t for t in all_tasks if t["id"] == matched_id), None)
+                pattern = target_task["dest"].replace("teldrive:", "teldrive:/") if target_task else task
                 subprocess.run(["sudo", "pkill", "-9", "-f", f"rclone.*{pattern}"])
             
-            # 3. 상태 업데이트 (중지됨 표시)
-            log_map = {
-                "photos": "/var/log/rclone_photos.log",
-                "HA_backups": "/var/log/rclone_HA_backups.log",
-                "surveillance": "/var/log/surveillance.log"
-            }
-            tasks_to_update = [task] if task != "all" else ["photos", "HA_backups", "surveillance"]
-            
+            # 3. 상태 업데이트 — 동적 (config.json 기반)
+            tasks_to_update = tasks_id if task == "all" else [task]
             for t in tasks_to_update:
-                logfile = log_map.get(t, "/var/log/rclone.log")
+                logfile = f"/var/log/rclone_{t}.log"
                 subprocess.run(["sudo", script_path, "_update_status", t, "error", logfile])
             
             return jsonify({"status": "ok", "message": f"{task} 작업 중지됨"})

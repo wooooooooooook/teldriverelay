@@ -3,7 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
-.env
 
 # Logs
 *.log
@@ -13,3 +12,6 @@ status.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Secrets
+rclone.conf
