@@ -27,12 +27,18 @@ TEMPLATE = """
       --gray: #8d99ae;
     }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; background: #f0f2f5; color: var(--dark); line-height: 1.6; }
-    .container { max-width: 1100px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    
-    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f2f5; margin-bottom: 30px; padding-bottom: 20px; }
-    h1 { margin: 0; font-size: 28px; font-weight: 800; background: linear-gradient(45deg, var(--primary), var(--info)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    
-    .btn { cursor: pointer; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+    .container { max-width: 1100px; margin: 20px auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+
+    @media (min-width: 768px) {
+      .container { margin: 40px auto; padding: 40px; }
+    }
+
+    header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 2px solid #f0f2f5; margin-bottom: 20px; padding-bottom: 16px; }
+    h1 { margin: 0; font-size: 20px; font-weight: 800; background: linear-gradient(45deg, var(--primary), var(--info)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    @media (min-width: 768px) { h1 { font-size: 28px; } }
+
+    .btn { cursor: pointer; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+    @media (min-width: 768px) { .btn { padding: 8px 16px; font-size: 13px; } }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: #3046bc; transform: translateY(-1px); }
     .btn-danger { background: rgba(231, 29, 54, 0.1); color: var(--danger); }
@@ -41,7 +47,8 @@ TEMPLATE = """
     .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-    .stats-card { background: #f8fbff; padding: 24px; border-radius: 12px; margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; border: 1px solid #e1e9f5; }
+    .stats-card { background: #f8fbff; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; border: 1px solid #e1e9f5; }
+    @media (min-width: 768px) { .stats-card { padding: 24px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; margin-bottom: 30px; } }
     .stat-item { display: flex; flex-direction: column; }
     .stat-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 700; }
     .stat-value { font-size: 20px; font-weight: 800; color: var(--dark); }
@@ -55,8 +62,13 @@ TEMPLATE = """
     .transfer-meta { color: var(--gray); font-size: 12px; font-weight: 500; }
 
     table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 20px 0; border-radius: 12px; overflow: hidden; border: 1px solid #f0f2f5; }
-    th { background: #fcfdfe; padding: 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); font-weight: 700; text-align: left; border-bottom: 1px solid #f0f2f5; }
-    td { padding: 16px; border-bottom: 1px solid #f0f2f5; font-size: 14px; vertical-align: middle; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    th { background: #fcfdfe; padding: 12px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); font-weight: 700; text-align: left; border-bottom: 1px solid #f0f2f5; white-space: nowrap; }
+    td { padding: 12px 10px; border-bottom: 1px solid #f0f2f5; font-size: 13px; vertical-align: middle; }
+    @media (min-width: 768px) {
+      th { padding: 16px; }
+      td { padding: 16px; font-size: 14px; }
+    }
     tr:last-child td { border-bottom: none; }
     
     .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
@@ -70,7 +82,8 @@ TEMPLATE = """
     .actions { display: flex; gap: 8px; }
     
     pre { background: #1a1c23; color: #e1e1e1; padding: 20px; border-radius: 12px; overflow: auto; font-size: 12px; line-height: 1.6; border: 1px solid #2d2f39; margin-top: 10px; }
-    h2, h3 { color: var(--dark); margin-top: 40px; margin-bottom: 15px; font-weight: 800; border-left: 4px solid var(--primary); padding-left: 15px; }
+    h2, h3 { color: var(--dark); margin-top: 24px; margin-bottom: 10px; font-weight: 800; border-left: 4px solid var(--primary); padding-left: 12px; font-size: 16px; }
+    @media (min-width: 768px) { h2, h3 { margin-top: 40px; margin-bottom: 15px; font-size: 18px; } }
     hr { border: 0; height: 1px; background: #eee; margin: 40px 0; }
     
     .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; border-radius: 10px; background: var(--dark); color: white; display: none; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: fadeInUp 0.4s; }
@@ -142,6 +155,7 @@ TEMPLATE = """
 
     <section>
       <h2>백업 작업 리스트</h2>
+      <div class="table-scroll">
       <table>
         <thead><tr><th>작업명</th><th>마운트 경로</th><th>스케줄</th><th>상태</th><th>실행</th><th>관리</th></tr></thead>
         <tbody>
@@ -178,11 +192,13 @@ TEMPLATE = """
           {% endif %}
         </tbody>
       </table>
+      </div>
     </section>
 
     {% if live_mounts %}
       <section>
         <h2>네트워크 마운트 상태</h2>
+        <div class="table-scroll">
         <table>
           <thead><tr><th>마운트 경로</th><th>상태</th><th>소스 장치</th><th>파일시스템</th></tr></thead>
           <tbody>
@@ -202,6 +218,7 @@ TEMPLATE = """
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </section>
     {% endif %}
 
