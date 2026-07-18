@@ -26,10 +26,10 @@ echo "[3/4] Deploy config.json..."
 scp "$REPO_DIR/config/config.json" "$HOST:/tmp/config.json"
 ssh "$HOST" "pct push $CT /tmp/config.json /var/www/rclone-status/config.json"
 ssh "$HOST" "pct exec $CT -- chown www-data:www-data /var/www/rclone-status/config.json"
-ssh "$HOST" "pct exec $CT -- cp /tmp/config.json /var/www/rclone-status/config.json && chown www-data:www-data /var/www/rclone-status/config.json"
 
 # 4. systemd reload
 echo "[4/4] Reload services..."
-ssh "$HOST" "pct exec $CT -- systemctl daemon-reload && systemctl restart rclone-status"
+ssh "$HOST" "pct exec $CT -- systemctl daemon-reload"
+ssh "$HOST" "pct exec $CT -- systemctl restart rclone-status"
 
 echo "[$(date -Is)] Deploy done — check: ssh root@192.168.0.99 \"pct exec 104 -- systemctl status rclone-status | head -5\""
