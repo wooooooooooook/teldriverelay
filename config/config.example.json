@@ -3,9 +3,9 @@
     {
       "id": "photos",
       "name": "Photos",
-      "source": "/mnt/nas/woooook/Photos",
+      "source": "/mnt/nas/photos",
       "dest": "teldrive:/photos",
-      "schedule": "0 16 * * *",
+      "schedule": "0 1 * * *",
       "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3",
       "enabled": true
     },
@@ -15,17 +15,8 @@
       "source": "/mnt/backups/HA backups",
       "dest": "teldrive:/HA backups",
       "schedule": "0 3 * * *",
-      "enabled": true,
-      "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3"
-    },
-    {
-      "id": "surveillance",
-      "name": "Surveillance",
-      "source": "/mnt/surveillance",
-      "dest": "teldrive:/surveillance",
-      "schedule": "0 3 * * *",
-      "enabled": true,
-      "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3"
+      "rclone_flags": "--create-empty-src-dirs --exclude @*/** --ignore-existing --transfers 1 --checkers 2 --tpslimit 3",
+      "enabled": true
     },
     {
       "id": "pve_backups",

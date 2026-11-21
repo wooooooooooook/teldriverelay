@@ -15,3 +15,8 @@ Thumbs.db
 
 # Secrets
 rclone.conf
+
+# Local runtime config (machine-specific; kept out of git)
+# config/config.example.json 템플릿을 복사해 로컬에서만 관리한다.
+# 라이브 설정은 CT104 /var/www/rclone-status/config.json 이다.
+config/config.json
